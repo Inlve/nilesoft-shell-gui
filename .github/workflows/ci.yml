@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and smoke test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - name: Restore
+        run: dotnet restore ShellStudio.sln
+      - name: Verify formatting
+        run: dotnet format ShellStudio.sln --verify-no-changes --no-restore
+      - name: Build
+        run: dotnet build ShellStudio.sln -c Release --no-restore -p:Platform=x64
+      - name: Run Core smoke tests
+        run: dotnet run --project tests/ShellManager.Tests -c Release --no-build
+
+  conventional-title:
+    name: Conventional PR title
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate title
+        shell: pwsh
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if ($env:PR_TITLE -notmatch '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._-]+\))?!?: .+$') {
+            throw "PR title must follow Conventional Commits, for example: feat(menu): add nested item builder"
+          }

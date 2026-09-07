@@ -1,0 +1,46 @@
+name: Bug report
+description: Report a reproducible Shell Studio problem.
+title: "fix: "
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve Shell Studio. Remove private paths and secrets before posting logs.
+  - type: input
+    id: app-version
+    attributes:
+      label: Shell Studio version
+      placeholder: 0.2.0
+    validations:
+      required: true
+  - type: input
+    id: shell-version
+    attributes:
+      label: Nilesoft Shell version
+      placeholder: 1.9.18
+    validations:
+      required: true
+  - type: input
+    id: windows-version
+    attributes:
+      label: Windows version
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      placeholder: Tell us exactly what you did and what happened.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant redacted configuration or logs
+      render: shell

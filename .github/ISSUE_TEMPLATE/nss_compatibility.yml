@@ -1,0 +1,24 @@
+name: NSS compatibility issue
+description: Report a valid Nilesoft Shell construct that Shell Studio mishandles.
+title: "fix(parser): "
+labels: [compatibility, parser, triage]
+body:
+  - type: input
+    id: docs
+    attributes:
+      label: Nilesoft documentation link
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: Minimal NSS sample
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Current and expected result
+    validations:
+      required: true

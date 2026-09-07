@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    name: Publish ${{ github.ref_name }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Validate semantic version
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}'
+          if ($tag -notmatch '^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z.-]+)?$') {
+            throw "Tag '$tag' is not a semantic version."
+          }
+          [xml]$props = Get-Content -Raw Directory.Build.props
+          $version = $props.Project.PropertyGroup.VersionPrefix
+          if ($tag -ne "v$version") {
+            throw "Tag '$tag' does not match VersionPrefix '$version'."
+          }
+          if ((git cat-file -t $tag) -ne 'tag') {
+            throw "Release tags must be signed annotated tags, not lightweight tags."
+          }
+
+      - name: Restore and test
+        run: |
+          dotnet restore ShellStudio.sln
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet build ShellStudio.sln -c Release --no-restore -p:Platform=x64
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet run --project tests/ShellManager.Tests -c Release --no-build
+
+      - name: Publish self-contained single file
+        run: >-
+          dotnet publish src/ShellManager.App/ShellManager.App.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:Platform=x64
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:PublishTrimmed=false
+          -p:NuGetLockFilePath=obj/packages.publish.lock.json
+          -p:RestoreLockedMode=false
+          -o artifacts/win-x64
+
+      - name: Create checksum
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash artifacts/win-x64/ShellStudio.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  ShellStudio.exe" | Set-Content artifacts/win-x64/ShellStudio.exe.sha256 -Encoding ascii
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShellStudio-${{ github.ref_name }}-win-x64
+          path: |
+            artifacts/win-x64/ShellStudio.exe
+            artifacts/win-x64/ShellStudio.exe.sha256
+          if-no-files-found: error
+
+      - name: Attest executable
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: artifacts/win-x64/ShellStudio.exe
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create '${{ github.ref_name }}'
+          artifacts/win-x64/ShellStudio.exe
+          artifacts/win-x64/ShellStudio.exe.sha256
+          --verify-tag --generate-notes --title 'Shell Studio ${{ github.ref_name }}'
