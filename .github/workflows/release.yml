@@ -26,11 +26,11 @@ jobs:
             throw 'Invalid release tag.'
           }
           "tag=$tag" >> $env:GITHUB_OUTPUT
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: refs/tags/${{ steps.target.outputs.tag }}
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
 
@@ -78,7 +78,7 @@ jobs:
           "$hash  ShellStudio.exe" | Set-Content artifacts/win-x64/ShellStudio.exe.sha256 -Encoding ascii
 
       - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ShellStudio-${{ steps.target.outputs.tag }}-win-x64
           path: |
@@ -87,7 +87,7 @@ jobs:
           if-no-files-found: error
 
       - name: Attest executable
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: artifacts/win-x64/ShellStudio.exe
 
