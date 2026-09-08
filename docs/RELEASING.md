@@ -37,3 +37,13 @@ The tag workflow independently:
 
 Published tags are immutable. If a release is wrong, fix it in a new patch
 release; never move or overwrite the existing tag.
+
+## Recover a failed publishing workflow
+
+If only the release workflow is broken, fix it on main and push that commit to
+`release-recovery/<existing-tag>` (for example `release-recovery/v0.2.0`).
+This runs the corrected workflow but explicitly checks out the original tag
+for all source, version validation, builds, and artifacts. It never moves the
+tag. Use this only for a failed release that has not been published; existing
+release assets are not overwritten. The recovery branch can be deleted after
+successful publication.
