@@ -12,6 +12,20 @@ All notable changes to Shell Studio are documented here. The project follows
 - Drag-and-drop ordering and nested menu creation.
 - Shell log diagnostics linked to source lines.
 
+## [0.3.0] - 2026-09-09
+
+### Added
+
+- Lossless NSS tokenization and structural parsing with source spans for nodes and properties.
+- Source-backed node property editing, minimal draft updates, and stale-snapshot protection.
+- Static imports resolved from parsed nodes rather than line regular expressions.
+- Regression coverage for lossless roundtrips, multiline properties, flags, and safe value edits.
+
+### Fixed
+
+- Respect NSS single-quoted interpolation and double-quoted literal escaping.
+- Locate theme block boundaries through the parser, including comments and quoted braces.
+
 ## [0.2.1] - 2026-09-08
 
 ### Fixed
@@ -44,7 +58,8 @@ All notable changes to Shell Studio are documented here. The project follows
 - Initial WPF prototype with NSS discovery, parsing, editing, validation,
   backups, menu item creation, theme generation, and Shell reload support.
 
-[Unreleased]: https://github.com/Inlve/nilesoft-shell-gui/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/Inlve/nilesoft-shell-gui/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Inlve/nilesoft-shell-gui/compare/v0.2.0...v0.3.0
 [0.2.1]: https://github.com/Inlve/nilesoft-shell-gui/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Inlve/nilesoft-shell-gui/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Inlve/nilesoft-shell-gui/releases/tag/v0.1.0

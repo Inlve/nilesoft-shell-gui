@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text;
-using System.Text.RegularExpressions;
 using ShellManager.Core.Models;
 
 namespace ShellManager.Core.Services;
@@ -89,9 +88,8 @@ public sealed class ConfigurationService(ShellInstallation installation)
         else
         {
             var themeNode = themeFile.Nodes.First(n => n.Kind == "theme");
-            var open = content.IndexOf('{', Math.Max(0, LineStartIndex(content, themeNode.Line)));
-            var close = FindMatchingBrace(content, open);
-            if (open < 0 || close < 0) throw new InvalidDataException("无法定位 theme 配置块，请改用源码编辑器。 ");
+            var close = themeNode.BodyEnd ?? -1;
+            if (close < 0) throw new InvalidDataException("无法定位 theme 配置块，请改用源码编辑器。 ");
             updated = content[..close].TrimEnd() + "\r\n\r\n\t" + managedBlock.Replace("\r\n", "\r\n\t").TrimEnd('\t') + "\r\n" + content[close..];
         }
         Save(themeFile, updated);
@@ -104,33 +102,6 @@ public sealed class ConfigurationService(ShellInstallation installation)
         return includeSection ? $"theme\r\n{{\r\n\t{body.Replace("\r\n", "\r\n\t")}\r\n}}" : body;
     }
 
-    private static int LineStartIndex(string content, int oneBasedLine)
-    {
-        var index = 0;
-        for (var line = 1; line < oneBasedLine && index < content.Length; line++)
-        {
-            var next = content.IndexOf('\n', index);
-            index = next < 0 ? content.Length : next + 1;
-        }
-        return index;
-    }
-
-    private static int FindMatchingBrace(string content, int open)
-    {
-        if (open < 0) return -1;
-        var depth = 0;
-        var quote = '\0';
-        for (var i = open; i < content.Length; i++)
-        {
-            var ch = content[i];
-            if (quote != '\0') { if (ch == quote && (i == 0 || content[i - 1] != '\\')) quote = '\0'; continue; }
-            if (ch is '\'' or '"') { quote = ch; continue; }
-            if (ch == '{') depth++;
-            if (ch == '}' && --depth == 0) return i;
-        }
-        return -1;
-    }
-
     private static void LoadRecursive(string path, bool isMain, ICollection<ConfigFileModel> result, ISet<string> visited)
     {
         path = Path.GetFullPath(path);
@@ -140,12 +111,9 @@ public sealed class ConfigurationService(ShellInstallation installation)
         foreach (var node in NssParser.ParseOutline(content)) model.Nodes.Add(node);
         result.Add(model);
         var directory = Path.GetDirectoryName(path)!;
-        foreach (var line in content.Replace("\r\n", "\n").Split('\n'))
+        foreach (var node in NssSyntax.Parse(content).Descendants().Where(n => n.ImportExpression is not null))
         {
-            var match = NssParser.ImportRegex().Match(line);
-            if (!match.Success) continue;
-            var value = match.Groups.Cast<Group>().Skip(1).First(g => g.Success).Value;
-            if (Regex.IsMatch(value, @"[@$()]")) continue;
+            if (!NssSyntax.TryGetLiteral(node.ImportExpression!, out var value)) continue;
             var importPath = Environment.ExpandEnvironmentVariables(value);
             if (!Path.IsPathRooted(importPath)) importPath = Path.Combine(directory, importPath.Replace('/', Path.DirectorySeparatorChar));
             LoadRecursive(importPath, false, result, visited);

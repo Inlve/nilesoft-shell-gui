@@ -61,13 +61,15 @@ shell.exe -restart -silent
 
 ## 安全边界
 
-- 不解释或重新格式化用户原有 NSS 源码。
+- 解析结构但不执行用户表达式；属性编辑只替换目标值，不重新格式化原文件。
 - 不自动删除、禁用或移动现有菜单项。
 - 不在用户确认前重启 Explorer。
 - Program Files 安装使用管理员权限，避免保存进行到一半才失败。
 - 备份存放在 `%LOCALAPPDATA%\Shell Studio\Backups`，与安装目录分离。
 
 ## 后续迭代
+
+解析器与双向编辑的当前边界见 [NSS-PARSER.md](NSS-PARSER.md)。
 
 - 完整的 `modify/remove` 规则构建器。
 - 菜单树拖放排序与嵌套子菜单向导。

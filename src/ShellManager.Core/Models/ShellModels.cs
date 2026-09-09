@@ -38,9 +38,16 @@ public sealed class ConfigFileModel
 
 public sealed class NssNode
 {
-    public required string Kind { get; init; }
-    public required string Title { get; init; }
+    public required string Kind { get; set; }
+    public required string Title { get; set; }
     public int Line { get; init; }
+    public int Start { get; init; }
+    public int End { get; set; }
+    public int? BodyStart { get; set; }
+    public int? BodyEnd { get; set; }
+    public int? PropertyListEnd { get; set; }
+    public string? ImportExpression { get; set; }
+    public List<NssProperty> Properties { get; } = [];
     public ObservableCollection<NssNode> Children { get; } = [];
 }
 

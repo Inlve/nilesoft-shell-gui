@@ -22,10 +22,14 @@ public sealed partial class MainWindow : Window
     private readonly AppWindow _appWindow;
     private bool _loadingEditor;
     private bool _allowClose;
+    private readonly StackPanel _propertyPanel = new() { Spacing = 10 };
 
     public MainWindow()
     {
         InitializeComponent();
+        if (NewTitle.Parent is StackPanel menuPanel)
+            menuPanel.Children.Insert(0, new Expander { Header = "所选节点属性", IsExpanded = true, HorizontalAlignment = HorizontalAlignment.Stretch, Content = _propertyPanel });
+        _propertyPanel.Children.Add(new TextBlock { Text = "从左侧选择配置节点，直接编辑其属性。", TextWrapping = TextWrapping.Wrap });
         ThemeName.SelectionChanged += (_, _) => UpdateThemePreview();
         ThemeView.SelectionChanged += (_, _) => UpdateThemePreview();
         ThemeRadius.ValueChanged += (_, _) => UpdateThemePreview();
@@ -48,6 +52,8 @@ public sealed partial class MainWindow : Window
 
     private void LoadConfiguration(string? selectPath = null)
     {
+        _propertyPanel.Children.Clear();
+        _propertyPanel.Children.Add(new TextBlock { Text = "请选择配置节点。" });
         _files.Clear();
         if (!_installation.IsDetected)
         {
@@ -139,6 +145,11 @@ public sealed partial class MainWindow : Window
     {
         if (_loadingEditor || SelectedFile is null) return;
         SelectedFile.UpdateFromEditor(SourceEditor.Text);
+        SelectedFile.Nodes.Clear();
+        foreach (var node in NssParser.ParseOutline(SelectedFile.Content)) SelectedFile.Nodes.Add(node);
+        PopulateOutline();
+        _propertyPanel.Children.Clear();
+        _propertyPanel.Children.Add(new TextBlock { Text = "源码已更新，请重新选择配置节点。" });
         UpdateDirtyState();
     }
 
@@ -205,7 +216,7 @@ public sealed partial class MainWindow : Window
             var admin = NewAdmin.IsOn ? " admin" : string.Empty;
             var args = NewArguments.Text.Trim();
             var entry = new StringBuilder().Append("item(title=").Append(NssParser.Quote(title)).Append(" type=").Append(NssParser.Quote(type)).Append(" cmd=").Append(NssParser.Quote(command));
-            if (args.Length > 0) entry.Append(" args=").Append(NssParser.Quote(args));
+            if (args.Length > 0) entry.Append(" args=").Append(NssSyntax.QuoteInterpolated(args));
             entry.Append(admin).Append(")\r\n");
             var current = File.ReadAllText(path);
             var file = new ConfigFileModel { Path = path, DisplayName = Path.GetFileName(path), Content = current };
@@ -237,13 +248,70 @@ public sealed partial class MainWindow : Window
 
     private void OutlineTree_SelectionChanged(TreeView sender, TreeViewSelectionChangedEventArgs args)
     {
-        if (sender.SelectedNode?.Content is not NssNode node || node.Kind == "file") return;
+        if (sender.SelectedNode?.Content is not NssNode node) return;
+        if (node.Kind == "file")
+        {
+            _propertyPanel.Children.Clear();
+            _propertyPanel.Children.Add(new TextBlock { Text = "展开文件并选择需要编辑的配置节点。" });
+            return;
+        }
         var file = _files.FirstOrDefault(f => ContainsNode(f.Nodes, node));
         if (file is null) return;
         FileList.SelectedItem = file;
-        NavigateTo("Source");
-        SourceEditor.SelectionStart = Math.Min(NssText.CharacterIndexForLine(SourceEditor.Text, node.Line), SourceEditor.Text.Length);
-        SourceEditor.Focus(FocusState.Programmatic);
+        ShowNodeProperties(file, node.Start);
+    }
+
+    private void ShowNodeProperties(ConfigFileModel file, int start)
+    {
+        var document = NssSyntax.Parse(file.Content);
+        var node = document.Descendants().FirstOrDefault(n => n.Start == start);
+        _propertyPanel.Children.Clear();
+        if (node is null) return;
+        _propertyPanel.Children.Add(new TextBlock { Text = $"{node.Title} · 第 {node.Line} 行", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+        _propertyPanel.Children.Add(new TextBlock { Text = "文字常量可直接填写；表达式保留 NSS 写法。每项修改先更新草稿，点击顶部保存才写入文件。", TextWrapping = TextWrapping.Wrap });
+        var locate = new Button { Content = "定位源码" };
+        locate.Click += (_, _) =>
+        {
+            FileList.SelectedItem = file;
+            NavigateTo("Source");
+            SourceEditor.SelectionStart = Math.Min(NssText.CharacterIndexForLine(SourceEditor.Text, node.Line), SourceEditor.Text.Length);
+            SourceEditor.Focus(FocusState.Programmatic);
+        };
+        _propertyPanel.Children.Add(locate);
+        if (document.HasErrors)
+        {
+            _propertyPanel.Children.Add(new TextBlock { Text = "此文件有结构错误，修正源码后才能编辑属性。", TextWrapping = TextWrapping.Wrap });
+            return;
+        }
+        foreach (var property in node.Properties)
+        {
+            var literal = NssSyntax.TryGetLiteral(property.Expression, out var text);
+            var editor = new TextBox { Header = property.Name + (literal ? " · 文字" : property.IsFlag ? " · 标志（省略赋值）" : " · NSS 表达式"), Text = literal ? text : property.Expression, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap };
+            var apply = new Button { Content = "更新此属性" };
+            apply.Click += async (_, _) =>
+            {
+                try
+                {
+                    if (file.Content != document.Source) throw new InvalidOperationException("源码已经改变，请重新选择节点。");
+                    var expression = literal ? (editor.Text == text ? property.Expression : NssSyntax.QuoteLiteral(editor.Text)) : editor.Text;
+                    file.Content = document.ReplaceProperty(property, expression);
+                    file.Nodes.Clear();
+                    foreach (var updated in NssParser.ParseOutline(file.Content)) file.Nodes.Add(updated);
+                    PopulateOutline();
+                    FileList.SelectedItem = file;
+                    _loadingEditor = true;
+                    SourceEditor.Text = file.Content;
+                    _loadingEditor = false;
+                    UpdateDirtyState();
+                    ShowNodeProperties(file, start);
+                }
+                catch (Exception ex) { await ShowErrorAsync("无法更新属性", ex); }
+            };
+            _propertyPanel.Children.Add(editor);
+            _propertyPanel.Children.Add(apply);
+        }
+        if (node.Properties.Count == 0)
+            _propertyPanel.Children.Add(new TextBlock { Text = "此节点没有直接属性。请展开左侧子节点，或定位源码编辑。", TextWrapping = TextWrapping.Wrap });
     }
 
     private async void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
