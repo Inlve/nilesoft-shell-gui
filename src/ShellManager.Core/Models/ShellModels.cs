@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using ShellManager.Core.Services;
 
 namespace ShellManager.Core.Models;
 
@@ -11,12 +12,28 @@ public sealed record ShellInstallation(string Directory, string ExecutablePath, 
 
 public sealed class ConfigFileModel
 {
+    private string _content = string.Empty;
+    private string? _savedContent;
     public required string Path { get; init; }
     public required string DisplayName { get; init; }
-    public required string Content { get; set; }
+    public required string Content
+    {
+        get => _content;
+        set { _content = value; _savedContent ??= value; }
+    }
     public bool IsMain { get; init; }
-    public bool IsDirty { get; set; }
+    public bool IsDirty => NssText.Normalize(Content) != NssText.Normalize(_savedContent ?? string.Empty);
     public ObservableCollection<NssNode> Nodes { get; } = [];
+
+    public void UpdateFromEditor(string text)
+    {
+        var normalized = NssText.Normalize(text);
+        var saved = _savedContent ?? string.Empty;
+        var newline = saved.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : saved.Contains('\r') ? "\r" : "\n";
+        Content = normalized == NssText.Normalize(saved) ? saved : normalized.Replace("\n", newline);
+    }
+
+    public void AcceptChanges() => _savedContent = Content;
 }
 
 public sealed class NssNode

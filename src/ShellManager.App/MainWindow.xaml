@@ -105,7 +105,7 @@
                             <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                                 <StackPanel Padding="12,10,12,12" Spacing="4"><TextBlock Text="配置结构" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="解析真实 NSS 并保留高级表达式" Style="{StaticResource MutedTextStyle}" FontSize="12" /></StackPanel>
                                 <TreeView x:Name="OutlineTree" Grid.Row="1" SelectionMode="Single" SelectionChanged="OutlineTree_SelectionChanged">
-                                    <TreeView.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal" Spacing="8"><Border Background="{StaticResource AccentSoftBrush}" CornerRadius="5" Padding="6,2"><TextBlock Text="{Binding Kind}" Foreground="{StaticResource AccentBrush}" FontSize="11" /></Border><TextBlock Text="{Binding Title}" /><TextBlock Text="{Binding Line}" Style="{StaticResource MutedTextStyle}" FontSize="11" /></StackPanel></DataTemplate></TreeView.ItemTemplate>
+                                    <TreeView.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal" Spacing="8"><Border Background="{StaticResource AccentSoftBrush}" CornerRadius="5" Padding="6,2"><TextBlock Text="{Binding Content.Kind}" Foreground="{StaticResource AccentBrush}" FontSize="11" /></Border><TextBlock Text="{Binding Content.Title}" /><TextBlock Text="{Binding Content.Line}" Style="{StaticResource MutedTextStyle}" FontSize="11" /></StackPanel></DataTemplate></TreeView.ItemTemplate>
                                 </TreeView>
                             </Grid>
                         </Border>
@@ -117,7 +117,24 @@
                     <Grid x:Name="AppearancePage" Visibility="Collapsed" ColumnSpacing="18">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="370" /></Grid.ColumnDefinitions>
                         <Border Style="{StaticResource CardStyle}"><StackPanel Spacing="12"><TextBlock Text="主题预设" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="生成官方 theme{} 语法，可随时切换或继续微调。" Style="{StaticResource MutedTextStyle}" Margin="0,0,0,8" /><TextBlock Text="风格" FontWeight="SemiBold" /><ComboBox x:Name="ThemeName" SelectedIndex="0" HorizontalAlignment="Stretch"><ComboBoxItem Content="现代 · Modern" Tag="modern" /><ComboBoxItem Content="经典 · Classic" Tag="classic" /><ComboBoxItem Content="明亮 · White" Tag="white" /><ComboBoxItem Content="深色 · Black" Tag="black" /><ComboBoxItem Content="自动 · Auto" Tag="auto" /></ComboBox><TextBlock Text="密度" FontWeight="SemiBold" /><ComboBox x:Name="ThemeView" SelectedIndex="0" HorizontalAlignment="Stretch"><ComboBoxItem Content="紧凑" Tag="compact" /><ComboBoxItem Content="小" Tag="small" /><ComboBoxItem Content="中等" Tag="medium" /><ComboBoxItem Content="大" Tag="large" /><ComboBoxItem Content="宽" Tag="wide" /></ComboBox><NumberBox x:Name="ThemeRadius" Header="圆角" Minimum="0" Maximum="3" Value="2" SpinButtonPlacementMode="Inline" /><ToggleSwitch x:Name="ThemeShadow" Header="菜单阴影" IsOn="True" /><Button Content="生成主题配置" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Left" Click="GenerateTheme_Click" /></StackPanel></Border>
-                        <Border Grid.Column="1" Background="#25242B" CornerRadius="16" Padding="22" VerticalAlignment="Top"><StackPanel Spacing="12"><TextBlock Text="菜单预览" Foreground="#B8B6C2" FontSize="12" /><Border Background="#34323B" CornerRadius="10" Padding="8"><StackPanel Spacing="4"><Border Background="#675CF5" CornerRadius="6" Padding="12,9"><TextBlock Text="在 Shell Studio 中打开" Foreground="White" /></Border><TextBlock Text="复制路径" Foreground="White" Padding="12,9" /><TextBlock Text="使用终端打开" Foreground="White" Padding="12,9" /><Rectangle Height="1" Fill="#56535F" Margin="8,2" /><TextBlock Text="更多选项" Foreground="White" Padding="12,9" /></StackPanel></Border></StackPanel></Border>
+                        <Border Grid.Column="1" Background="#25242B" CornerRadius="16" Padding="22" VerticalAlignment="Top">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="菜单预览" Foreground="#B8B6C2" FontSize="12" />
+                                <Grid Margin="0,0,6,6">
+                                    <Border x:Name="PreviewShadow" Background="#99000000" Margin="5,5,-5,-5" />
+                                    <Border x:Name="PreviewMenu" Padding="8">
+                                        <StackPanel Spacing="4">
+                                            <Border x:Name="PreviewSelection"><TextBlock Text="在 Shell Studio 中打开" Foreground="White" /></Border>
+                                            <TextBlock x:Name="PreviewCopy" Text="复制路径" />
+                                            <TextBlock x:Name="PreviewTerminal" Text="使用终端打开" />
+                                            <Rectangle Height="1" Fill="#808080" Margin="8,2" />
+                                            <TextBlock x:Name="PreviewMore" Text="更多选项" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                                <TextBlock Text="实时示意预览；实际效果以 Shell 应用后的菜单为准。" Foreground="#B8B6C2" FontSize="12" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
                     </Grid>
 
                     <Grid x:Name="SourcePage" Visibility="Collapsed" ColumnSpacing="12">

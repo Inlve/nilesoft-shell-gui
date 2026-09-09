@@ -12,6 +12,17 @@ All notable changes to Shell Studio are documented here. The project follows
 - Drag-and-drop ordering and nested menu creation.
 - Shell log diagnostics linked to source lines.
 
+## [0.2.1] - 2026-09-08
+
+### Fixed
+
+- Display NSS tree node content correctly in the WinUI TreeView.
+- Compare editor text to the saved baseline, preserving line endings and clearing
+  the dirty indicator when edits are undone.
+- Validate CR, LF, and CRLF input consistently and navigate to the reported line.
+- Update the appearance preview when style, density, item radius, or shadow changes.
+- Preserve annotated release tags during CI checkout and support failed-release recovery.
+
 ## [0.2.0] - 2026-09-07
 
 ### Changed
@@ -33,6 +44,7 @@ All notable changes to Shell Studio are documented here. The project follows
 - Initial WPF prototype with NSS discovery, parsing, editing, validation,
   backups, menu item creation, theme generation, and Shell reload support.
 
-[Unreleased]: https://github.com/Inlve/nilesoft-shell-gui/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Inlve/nilesoft-shell-gui/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/Inlve/nilesoft-shell-gui/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Inlve/nilesoft-shell-gui/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Inlve/nilesoft-shell-gui/releases/tag/v0.1.0

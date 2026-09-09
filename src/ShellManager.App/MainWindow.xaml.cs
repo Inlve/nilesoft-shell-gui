@@ -26,6 +26,12 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        ThemeName.SelectionChanged += (_, _) => UpdateThemePreview();
+        ThemeView.SelectionChanged += (_, _) => UpdateThemePreview();
+        ThemeRadius.ValueChanged += (_, _) => UpdateThemePreview();
+        ThemeShadow.Toggled += (_, _) => UpdateThemePreview();
+        RootGrid.ActualThemeChanged += (_, _) => UpdateThemePreview();
+        UpdateThemePreview();
         _installation = ShellLocator.Locate();
         _configuration = new ConfigurationService(_installation);
 
@@ -125,14 +131,14 @@ public sealed partial class MainWindow : Window
         SourceEditor.Text = SelectedFile.Content;
         EditorFileName.Text = SelectedFile.DisplayName;
         EditorStatus.Text = SelectedFile.Path;
+        EditorStatus.Foreground = new SolidColorBrush(Colors.Gray);
         _loadingEditor = false;
     }
 
     private void SourceEditor_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (_loadingEditor || SelectedFile is null) return;
-        SelectedFile.Content = SourceEditor.Text;
-        SelectedFile.IsDirty = true;
+        SelectedFile.UpdateFromEditor(SourceEditor.Text);
         UpdateDirtyState();
     }
 
@@ -150,7 +156,7 @@ public sealed partial class MainWindow : Window
         var issue = issues[0];
         EditorStatus.Text = issue.ToString();
         EditorStatus.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 229, 72, 77));
-        var index = CharacterIndexForLine(SourceEditor.Text, issue.Line);
+        var index = NssText.CharacterIndexForLine(SourceEditor.Text, issue.Line) + issue.Column - 1;
         SourceEditor.SelectionStart = Math.Min(index, SourceEditor.Text.Length);
         SourceEditor.SelectionLength = 0;
         SourceEditor.Focus(FocusState.Programmatic);
@@ -165,8 +171,11 @@ public sealed partial class MainWindow : Window
         var dirty = _files.Where(f => f.IsDirty).ToList();
         try
         {
-            foreach (var file in dirty) _configuration.Save(file, file.Content);
-            foreach (var file in dirty) file.IsDirty = false;
+            foreach (var file in dirty)
+            {
+                _configuration.Save(file, file.Content);
+                file.AcceptChanges();
+            }
             if (apply && await ConfirmAsync("应用配置", "配置已安全保存。将使用 Nilesoft Shell 的 -restart -silent 命令重启 Windows 资源管理器。是否立即应用？"))
                 _configuration.RestartExplorer();
             UpdateDirtyState();
@@ -233,7 +242,7 @@ public sealed partial class MainWindow : Window
         if (file is null) return;
         FileList.SelectedItem = file;
         NavigateTo("Source");
-        SourceEditor.SelectionStart = Math.Min(CharacterIndexForLine(SourceEditor.Text, node.Line), SourceEditor.Text.Length);
+        SourceEditor.SelectionStart = Math.Min(NssText.CharacterIndexForLine(SourceEditor.Text, node.Line), SourceEditor.Text.Length);
         SourceEditor.Focus(FocusState.Programmatic);
     }
 
@@ -262,14 +271,24 @@ public sealed partial class MainWindow : Window
     private static bool ContainsNode(IEnumerable<NssNode> nodes, NssNode target) => nodes.Any(n => ReferenceEquals(n, target) || ContainsNode(n.Children, target));
     private void UpdateDirtyState() => UnsavedBadge.Visibility = _files.Any(f => f.IsDirty) ? Visibility.Visible : Visibility.Collapsed;
 
-    private static int CharacterIndexForLine(string text, int oneBasedLine)
+    private void UpdateThemePreview()
     {
-        var index = 0;
-        for (var line = 1; line < oneBasedLine && index < text.Length; line++)
+        var name = (ThemeName.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "modern";
+        var view = (ThemeView.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "compact";
+        var dark = name == "black" || (name is "auto" or "modern" && RootGrid.ActualTheme == ElementTheme.Dark);
+        var classic = name == "classic";
+        var padding = view switch { "small" => 7, "medium" => 10, "large" => 14, "wide" => 18, _ => 4 };
+        PreviewMenu.Background = new SolidColorBrush(dark ? Colors.Black : classic ? Windows.UI.Color.FromArgb(255, 240, 240, 240) : Colors.White);
+        PreviewMenu.CornerRadius = new CornerRadius(classic ? 0 : 8);
+        PreviewSelection.CornerRadius = new CornerRadius(double.IsNaN(ThemeRadius.Value) ? 0 : ThemeRadius.Value);
+        PreviewSelection.Background = new SolidColorBrush(classic ? Windows.UI.Color.FromArgb(255, 0, 120, 215) : Windows.UI.Color.FromArgb(255, 103, 92, 245));
+        PreviewSelection.Padding = new Thickness(12, padding, 12, padding);
+        foreach (var row in new[] { PreviewCopy, PreviewTerminal, PreviewMore })
         {
-            var next = text.IndexOf('\n', index);
-            index = next < 0 ? text.Length : next + 1;
+            row.Padding = new Thickness(12, padding, 12, padding);
+            row.Foreground = new SolidColorBrush(dark ? Colors.White : Colors.Black);
         }
-        return index;
+        PreviewShadow.Visibility = ThemeShadow.IsOn ? Visibility.Visible : Visibility.Collapsed;
+        PreviewShadow.CornerRadius = PreviewMenu.CornerRadius;
     }
 }

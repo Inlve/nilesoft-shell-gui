@@ -59,6 +59,7 @@ public static partial class NssParser
 
     public static IReadOnlyList<ValidationIssue> Validate(string text)
     {
+        text = NssText.Normalize(text);
         var issues = new List<ValidationIssue>();
         var braces = new Stack<(char Ch, int Line, int Column)>();
         var quote = '\0';
