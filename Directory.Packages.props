@@ -3,6 +3,6 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="Microsoft.WindowsAppSDK.WinUI" Version="2.3.6" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK.WinUI" Version="2.6.5" />
   </ItemGroup>
 </Project>
